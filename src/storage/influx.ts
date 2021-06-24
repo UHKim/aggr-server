@@ -1,4 +1,4 @@
-import Influx from 'influx';
+import Influx, { InfluxDB } from 'influx';
 import { Bar, TimeRange, Trade } from 'src/types/trade';
 import { getHms, sleep } from '../helper';
 
@@ -18,7 +18,7 @@ class InfluxStorage {
     influxMeasurement: string;
   };
 
-  influx!: Influx.InfluxDB;
+  influx!: InfluxDB;
 
   constructor(options) {
     this.name = this.constructor.name;
@@ -44,7 +44,7 @@ class InfluxStorage {
     console.log(`[storage/${this.name}] connecting to ${host}:${port}`);
 
     try {
-      this.influx = new Influx.InfluxDB({
+      this.influx = new InfluxDB({
         host: host || 'localhost',
         port: Number(port) || 8086,
         database: this.options.influxDatabase,
@@ -58,6 +58,7 @@ class InfluxStorage {
 
       await this.getPreviousCloses();
     } catch (error) {
+      console.error(error.message);
       await sleep();
 
       return this.connect();

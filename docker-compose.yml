@@ -17,7 +17,6 @@ services:
       - ./${FILES_LOCATION}:${WORKDIR}/${FILES_LOCATION}
     ports:
       - ${SERVER_PORT}:${SERVER_PORT}
-
   influx:
     container_name: st-influxdb
     image: influxdb:1.7.11

@@ -97,6 +97,7 @@ const DEFAULTS = {
   // influx db server to use when storage is set to "influx"
   influxHost: 'localhost',
   influxPort: 8086,
+  influxUrl: 'localhost:8086',
 
   // influx database
   influxDatabase: 'significant_trades',

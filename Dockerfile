@@ -1,7 +1,9 @@
 FROM  mhart/alpine-node:14 as builder
 COPY  package*.json /
+COPY  tsconfig.json /
+
 RUN   set ex && npm install
-RUN   tsc
+RUN   node_modules/.bin/tsc --build
 
 FROM  mhart/alpine-node:slim-14
 
