@@ -253,7 +253,7 @@ class Server extends EventEmitter {
             }
           }
 
-          // this.dumpSymbolsByExchanges()
+          this.dumpSymbolsByExchanges();
         });
 
         exchange.on('open', (event: any) => {

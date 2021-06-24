@@ -2,8 +2,6 @@ import Influx from 'influx';
 import { Bar, TimeRange, Trade } from 'src/types/trade';
 import { getHms, sleep } from '../helper';
 
-require('../typedef');
-
 class InfluxStorage {
   name: string;
   format: string;

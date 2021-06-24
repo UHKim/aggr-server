@@ -1,4 +1,4 @@
-version: '3.7'
+version: '3.9'
 
 services:
   server:
@@ -18,10 +18,10 @@ services:
     ports:
       - ${SERVER_PORT}:${SERVER_PORT}
 
-  # influx:
-  #   container_name: st-influxdb
-  #   image: influxdb
-  #   ports:
-  #     - ${INFLUX_PORT}:${INFLUX_PORT}
-  #   volumes:
-  #     - ./${FILES_LOCATION}/influxdb:/var/lib/influxdb
+  influx:
+    container_name: st-influxdb
+    image: influxdb:1.7.11
+    ports:
+      - ${INFLUX_PORT}:${INFLUX_PORT}
+    volumes:
+      - ./${FILES_LOCATION}/influxdb:/var/lib/influxdb
