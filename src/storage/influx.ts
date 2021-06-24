@@ -1,4 +1,4 @@
-import Influx, { InfluxDB } from 'influx';
+import { InfluxDB } from 'influx';
 import { Bar, TimeRange, Trade } from 'src/types/trade';
 import { getHms, sleep } from '../helper';
 

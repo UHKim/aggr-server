@@ -63,7 +63,7 @@ const DEFAULTS = {
   origin: '.*',
 
   // max n of bars a user can get in 1 call
-  maxFetchLength: 100000,
+  maxFetchLength: 120000,
 
   // admin access type (whitelist, all, none)
   admin: 'whitelist',
@@ -92,7 +92,7 @@ const DEFAULTS = {
   storage: 'files',
 
   // store interval (in ms)
-  backupInterval: 1000 * 10,
+  backupInterval: 1000 * 5,
 
   // influx db server to use when storage is set to "influx"
   influxHost: 'localhost',
@@ -108,10 +108,11 @@ const DEFAULTS = {
 
   // timeframe in ms (default 10s === 10000ms)
   // this is lowest timeframe that influx will use to group the trades
-  influxTimeframe: 10000,
+  influxTimeframe: 5000,
 
   // downsampling
   influxResampleTo: [
+    1000 * 10,
     1000 * 30,
     1000 * 60,
     1000 * 60 * 5,
