@@ -20,15 +20,21 @@ export type Bar = {
   vsell: number;
   lbuy: number;
   lsell: number;
-  open: number;
-  high: number;
-  low: number;
-  close: number;
+
+  market?: string;
+
+  open?: number | null;
+  high?: number | null;
+  low?: number | null;
+  close?: number | null;
 };
 
 export type TimeRange = {
   from: number;
   to: number;
+
+  pairs: Pair[];
+  exchanges: string[];
 };
 
 export type TradeAggregations = { [aggrIdentifier: string]: Trade };

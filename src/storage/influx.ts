@@ -1,9 +1,27 @@
-const Influx = require('influx');
-const { getHms, sleep } = require('../helper');
+import Influx from 'influx';
+import { Bar, TimeRange, Trade } from 'src/types/trade';
+import { getHms, sleep } from '../helper';
 
 require('../typedef');
 
 class InfluxStorage {
+  name: string;
+  format: string;
+  lastBar: {};
+  lastClose: {};
+  options: {
+    influxDatabase: string;
+    influxHost?: string;
+    influxPort?: string;
+    influxUrl?: string;
+
+    influxTimeframe: number;
+    influxResampleTo: number[];
+    influxMeasurement: string;
+  };
+
+  influx!: Influx.InfluxDB;
+
   constructor(options) {
     this.name = this.constructor.name;
     this.format = 'point';
@@ -30,7 +48,7 @@ class InfluxStorage {
     try {
       this.influx = new Influx.InfluxDB({
         host: host || 'localhost',
-        port: port || '8086',
+        port: Number(port) || 8086,
         database: this.options.influxDatabase,
       });
 
@@ -115,7 +133,7 @@ class InfluxStorage {
       )
       .then((data) => {
         for (let bar of data) {
-          this.lastClose[bar.market] = bar.close;
+          this.lastClose[(bar as Bar).market!] = (bar as Bar).close;
         }
       });
   }
@@ -167,30 +185,30 @@ class InfluxStorage {
     }>}
    * @memberof InfluxStorage
    */
-  async import(trades, identifier) {
+  async import(trades, identifier?) {
     /**
      * Current bars
      * @type {{[identifier: string]: Bar}}
      */
-    const activeBars = {};
+    const activeBars: { [identifier: string]: Bar } = {};
 
     /**
      * closed bars
      * @type {Bar[]}
      */
-    const closedBars = [];
+    const closedBars: Bar[] = [];
 
     /**
      * liquidations
      * @type {Trade[]}
      */
-    const liquidations = [];
+    const liquidations: Trade[] = [];
 
     /**
      * Total range of import
      * @type {TimeRange}
      */
-    const totalRange = {
+    const totalRange: TimeRange = {
       from: Infinity,
       to: 0,
       pairs: [],
@@ -248,6 +266,7 @@ class InfluxStorage {
                 vsell: 0,
                 lbuy: 0,
                 lsell: 0,
+
                 open: null,
                 high: null,
                 low: null,
@@ -285,8 +304,14 @@ class InfluxStorage {
               +trade.price;
         }
 
-        activeBars[tradeIdentifier].high = Math.max(activeBars[tradeIdentifier].high, +trade.price);
-        activeBars[tradeIdentifier].low = Math.min(activeBars[tradeIdentifier].low, +trade.price);
+        activeBars[tradeIdentifier].high = Math.max(
+          activeBars[tradeIdentifier].high || 0,
+          +trade.price,
+        );
+        activeBars[tradeIdentifier].low = Math.min(
+          activeBars[tradeIdentifier].low || 0,
+          +trade.price,
+        );
         activeBars[tradeIdentifier].close = +trade.price;
 
         activeBars[tradeIdentifier]['c' + trade.side]++;
@@ -309,6 +334,7 @@ class InfluxStorage {
       await this.writePoints(
         closedBars.map((bar, index) => {
           const fields = {
+            ...bar,
             cbuy: bar.cbuy,
             csell: bar.csell,
             vbuy: bar.vbuy,
