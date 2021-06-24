@@ -1,50 +1,50 @@
-const Influx = require('influx')
-const { getHms, sleep } = require('../helper')
+const Influx = require('influx');
+const { getHms, sleep } = require('../helper');
 
-require('../typedef')
+require('../typedef');
 
 class InfluxStorage {
   constructor(options) {
-    this.name = this.constructor.name
-    this.format = 'point'
+    this.name = this.constructor.name;
+    this.format = 'point';
 
-    this.lastBar = {}
-    this.lastClose = {}
-    this.options = options
+    this.lastBar = {};
+    this.lastClose = {};
+    this.options = options;
   }
 
   async connect() {
     if (/\-/.test(this.options.influxDatabase)) {
-      throw new Error('dashes not allowed inside influxdb database')
+      throw new Error('dashes not allowed inside influxdb database');
     }
 
-    let host = this.options.influxHost
-    let port = this.options.influxPort
+    let host = this.options.influxHost;
+    let port = this.options.influxPort;
 
     if (typeof this.options.influxUrl === 'string' && this.options.influxUrl.length) {
-      ;[host, port] = this.options.influxUrl.split(':')
+      [host, port] = this.options.influxUrl.split(':');
     }
 
-    console.log(`[storage/${this.name}] connecting to ${host}:${port}`)
+    console.log(`[storage/${this.name}] connecting to ${host}:${port}`);
 
     try {
       this.influx = new Influx.InfluxDB({
         host: host || 'localhost',
         port: port || '8086',
         database: this.options.influxDatabase,
-      })
+      });
 
-      const databases = await this.influx.getDatabaseNames()
+      const databases = await this.influx.getDatabaseNames();
 
       if (!databases.includes(this.options.influxDatabase)) {
-        await this.influx.createDatabase(this.options.influxDatabase)
+        await this.influx.createDatabase(this.options.influxDatabase);
       }
 
-      await this.getPreviousCloses()
+      await this.getPreviousCloses();
     } catch (error) {
-      await sleep()
+      await sleep();
 
-      return this.connect()
+      return this.connect();
     }
   }
 
@@ -54,30 +54,33 @@ class InfluxStorage {
    * @memberof InfluxStorage
    */
   async resample(range) {
-    let sourceTimeframe
-    let destinationTimeframe
+    let sourceTimeframe;
+    let destinationTimeframe;
 
-    this.options.influxResampleTo.sort((a, b) => a - b)
+    this.options.influxResampleTo.sort((a, b) => a - b);
 
     for (let timeframe of this.options.influxResampleTo) {
       const flooredRange = {
         from: Math.floor(range.from / timeframe) * timeframe,
         to: Math.floor(range.to / timeframe) * timeframe + timeframe,
-      }
+      };
 
       for (let i = this.options.influxResampleTo.indexOf(timeframe); i >= 0; i--) {
-        if (timeframe <= this.options.influxResampleTo[i] || timeframe % this.options.influxResampleTo[i] !== 0) {
+        if (
+          timeframe <= this.options.influxResampleTo[i] ||
+          timeframe % this.options.influxResampleTo[i] !== 0
+        ) {
           if (i === 0) {
-            sourceTimeframe = getHms(this.options.influxTimeframe)
+            sourceTimeframe = getHms(this.options.influxTimeframe);
           }
-          continue
+          continue;
         }
 
-        sourceTimeframe = getHms(this.options.influxResampleTo[i])
-        break
+        sourceTimeframe = getHms(this.options.influxResampleTo[i]);
+        break;
       }
 
-      destinationTimeframe = getHms(timeframe)
+      destinationTimeframe = getHms(timeframe);
 
       const query = `SELECT min(low) AS low, 
       max(high) AS high, 
@@ -90,14 +93,16 @@ class InfluxStorage {
       sum(lsell) AS lsell, 
       sum(vol) AS vol, 
       sum(vbuy) AS vbuy, 
-      sum(vsell) AS vsell`
+      sum(vsell) AS vsell`;
 
-      const query_from = `${this.options.influxDatabase}.autogen.${this.options.influxMeasurement}_${sourceTimeframe}`
-      const query_into = `${this.options.influxDatabase}.autogen.${this.options.influxMeasurement}_${destinationTimeframe}`
-      const coverage = `WHERE time >= ${flooredRange.from}ms AND time < ${flooredRange.to}ms`
-      const group = `GROUP BY time(${destinationTimeframe}), market fill(none)`
+      const query_from = `${this.options.influxDatabase}.autogen.${this.options.influxMeasurement}_${sourceTimeframe}`;
+      const query_into = `${this.options.influxDatabase}.autogen.${this.options.influxMeasurement}_${destinationTimeframe}`;
+      const coverage = `WHERE time >= ${flooredRange.from}ms AND time < ${flooredRange.to}ms`;
+      const group = `GROUP BY time(${destinationTimeframe}), market fill(none)`;
 
-      await this.executeQuery(`${query} INTO ${query_into} FROM ${query_from} ${coverage} ${group}`)
+      await this.executeQuery(
+        `${query} INTO ${query_into} FROM ${query_from} ${coverage} ${group}`,
+      );
     }
   }
 
@@ -106,13 +111,13 @@ class InfluxStorage {
       .query(
         `SELECT close FROM ${this.options.influxMeasurement}${
           this.options.influxTimeframe ? '_' + getHms(this.options.influxTimeframe) : ''
-        } GROUP BY "market" ORDER BY time DESC LIMIT 1`
+        } GROUP BY "market" ORDER BY time DESC LIMIT 1`,
       )
       .then((data) => {
         for (let bar of data) {
-          this.lastClose[bar.market] = bar.close
+          this.lastClose[bar.market] = bar.close;
         }
-      })
+      });
   }
 
   /**
@@ -124,12 +129,12 @@ class InfluxStorage {
    */
   async save(trades) {
     if (!trades || !trades.length) {
-      return Promise.resolve()
+      return Promise.resolve();
     }
 
-    const resampleRange = await this.import(trades)
+    const resampleRange = await this.import(trades);
 
-    await this.resample(resampleRange)
+    await this.resample(resampleRange);
   }
 
   /**
@@ -137,16 +142,16 @@ class InfluxStorage {
    * @param {Bar} bar
    */
   closeBar(bar) {
-    const barIdentifier = bar.exchange + ':' + bar.pair
+    const barIdentifier = bar.exchange + ':' + bar.pair;
 
     if (typeof bar.close === 'number') {
       // reg close for next bar
-      this.lastClose[barIdentifier] = bar.close
+      this.lastClose[barIdentifier] = bar.close;
     }
 
-    this.lastBar[barIdentifier] = bar
+    this.lastBar[barIdentifier] = bar;
 
-    return this.lastBar[barIdentifier]
+    return this.lastBar[barIdentifier];
   }
 
   /**
@@ -167,19 +172,19 @@ class InfluxStorage {
      * Current bars
      * @type {{[identifier: string]: Bar}}
      */
-    const activeBars = {}
+    const activeBars = {};
 
     /**
      * closed bars
      * @type {Bar[]}
      */
-    const closedBars = []
+    const closedBars = [];
 
     /**
      * liquidations
      * @type {Trade[]}
      */
-    const liquidations = []
+    const liquidations = [];
 
     /**
      * Total range of import
@@ -190,43 +195,47 @@ class InfluxStorage {
       to: 0,
       pairs: [],
       exchanges: [],
-    }
+    };
 
     for (let i = 0; i <= trades.length; i++) {
-      const trade = trades[i]
+      const trade = trades[i];
 
-      let tradeIdentifier
-      let tradeFlooredTime
+      let tradeIdentifier;
+      let tradeFlooredTime;
 
       if (!trade) {
         // end of loop reached = close all bars
         for (let barIdentifier in activeBars) {
-          closedBars.push(this.closeBar(activeBars[barIdentifier]))
+          closedBars.push(this.closeBar(activeBars[barIdentifier]));
 
-          delete activeBars[barIdentifier]
+          delete activeBars[barIdentifier];
         }
 
-        break
+        break;
       } else {
-        tradeIdentifier = trade.exchange + ':' + trade.pair
-        tradeFlooredTime = Math.floor(trade.timestamp / this.options.influxTimeframe) * this.options.influxTimeframe
+        tradeIdentifier = trade.exchange + ':' + trade.pair;
+        tradeFlooredTime =
+          Math.floor(trade.timestamp / this.options.influxTimeframe) * this.options.influxTimeframe;
 
         if (!activeBars[tradeIdentifier] || activeBars[tradeIdentifier].time < tradeFlooredTime) {
           if (activeBars[tradeIdentifier]) {
             // close bar required
 
-            closedBars.push(this.closeBar(activeBars[tradeIdentifier]))
+            closedBars.push(this.closeBar(activeBars[tradeIdentifier]));
 
-            delete activeBars[tradeIdentifier]
+            delete activeBars[tradeIdentifier];
           }
 
           if (trade) {
             // create bar required
 
-            if (this.lastBar[tradeIdentifier] && this.lastBar[tradeIdentifier].time === tradeFlooredTime) {
+            if (
+              this.lastBar[tradeIdentifier] &&
+              this.lastBar[tradeIdentifier].time === tradeFlooredTime
+            ) {
               // trades passed in save() contains some of the last batch (trade time = last bar time)
               // recover exchange point of lastbar
-              activeBars[tradeIdentifier] = this.lastBar[tradeIdentifier]
+              activeBars[tradeIdentifier] = this.lastBar[tradeIdentifier];
             } else {
               // create new bar
               activeBars[tradeIdentifier] = {
@@ -243,7 +252,7 @@ class InfluxStorage {
                 high: null,
                 low: null,
                 close: null,
-              }
+              };
 
               if (typeof this.lastClose[tradeIdentifier] === 'number') {
                 // this bar open = last bar close (from last save or getReferencePoint on startup)
@@ -251,7 +260,7 @@ class InfluxStorage {
                   activeBars[tradeIdentifier].high =
                   activeBars[tradeIdentifier].low =
                   activeBars[tradeIdentifier].close =
-                    this.lastClose[tradeIdentifier]
+                    this.lastClose[tradeIdentifier];
               }
             }
           }
@@ -259,40 +268,40 @@ class InfluxStorage {
       }
 
       if (trade.liquidation) {
-        liquidations.push(trade)
+        liquidations.push(trade);
       }
 
       if (trade.liquidation) {
         // trade is a liquidation
-        activeBars[tradeIdentifier]['l' + trade.side] += trade.price * trade.size
+        activeBars[tradeIdentifier]['l' + trade.side] += trade.price * trade.size;
       } else {
         if (activeBars[tradeIdentifier].open === null) {
           // new bar without close in db, should only happen once
-          console.log(`[storage/${this.name}] register new serie ${tradeIdentifier}`)
+          console.log(`[storage/${this.name}] register new serie ${tradeIdentifier}`);
           activeBars[tradeIdentifier].open =
             activeBars[tradeIdentifier].high =
             activeBars[tradeIdentifier].low =
             activeBars[tradeIdentifier].close =
-              +trade.price
+              +trade.price;
         }
 
-        activeBars[tradeIdentifier].high = Math.max(activeBars[tradeIdentifier].high, +trade.price)
-        activeBars[tradeIdentifier].low = Math.min(activeBars[tradeIdentifier].low, +trade.price)
-        activeBars[tradeIdentifier].close = +trade.price
+        activeBars[tradeIdentifier].high = Math.max(activeBars[tradeIdentifier].high, +trade.price);
+        activeBars[tradeIdentifier].low = Math.min(activeBars[tradeIdentifier].low, +trade.price);
+        activeBars[tradeIdentifier].close = +trade.price;
 
-        activeBars[tradeIdentifier]['c' + trade.side]++
-        activeBars[tradeIdentifier]['v' + trade.side] += trade.price * trade.size
+        activeBars[tradeIdentifier]['c' + trade.side]++;
+        activeBars[tradeIdentifier]['v' + trade.side] += trade.price * trade.size;
       }
 
-      totalRange.from = Math.min(tradeFlooredTime, totalRange.from)
-      totalRange.to = Math.max(tradeFlooredTime, totalRange.to)
+      totalRange.from = Math.min(tradeFlooredTime, totalRange.from);
+      totalRange.to = Math.max(tradeFlooredTime, totalRange.to);
 
       if (totalRange.pairs.indexOf(trade.pair) === -1) {
-        totalRange.pairs.push(trade.pair)
+        totalRange.pairs.push(trade.pair);
       }
 
       if (totalRange.exchanges.indexOf(trade.exchange) === -1) {
-        totalRange.exchanges.push(trade.exchange)
+        totalRange.exchanges.push(trade.exchange);
       }
     }
 
@@ -306,25 +315,30 @@ class InfluxStorage {
             vsell: bar.vsell,
             lbuy: bar.lbuy,
             lsell: bar.lsell,
-          }
+          };
 
           if (bar.close !== null) {
-            ;(fields.open = bar.open), (fields.high = bar.high), (fields.low = bar.low), (fields.close = bar.close)
+            (fields.open = bar.open),
+              (fields.high = bar.high),
+              (fields.low = bar.low),
+              (fields.close = bar.close);
           }
 
           return {
-            measurement: 'trades' + (this.options.influxTimeframe ? '_' + getHms(this.options.influxTimeframe) : ''),
+            measurement:
+              'trades' +
+              (this.options.influxTimeframe ? '_' + getHms(this.options.influxTimeframe) : ''),
             tags: {
               market: bar.exchange + ':' + bar.pair,
             },
             fields: fields,
             timestamp: +bar.time,
-          }
+          };
         }),
         {
           precision: 'ms',
-        }
-      )
+        },
+      );
     }
 
     if (liquidations.length) {
@@ -334,7 +348,7 @@ class InfluxStorage {
             size: +trade.price,
             price: +trade.size,
             side: trade[4] == 1 ? 'buy' : 'sell',
-          }
+          };
 
           return {
             measurement: 'liquidations',
@@ -343,68 +357,70 @@ class InfluxStorage {
             },
             fields: fields,
             timestamp: +trade.timestamp,
-          }
+          };
         }),
         {
           precision: 'ms',
-        }
-      )
+        },
+      );
     }
 
-    return totalRange
+    return totalRange;
   }
 
   async writePoints(points, options, attempt = 0) {
     try {
-      await this.influx.writePoints(points, options)
+      await this.influx.writePoints(points, options);
 
       if (attempt > 0) {
-        console.debug(`[storage/${this.name}] successfully wrote points after ${attempt} attempt(s)`)
+        console.debug(
+          `[storage/${this.name}] successfully wrote points after ${attempt} attempt(s)`,
+        );
       }
     } catch (error) {
-      attempt++
+      attempt++;
 
-      console.debug(`[storage/${this.name}] write points failed (${attempt} attempt(s))`, error)
+      console.debug(`[storage/${this.name}] write points failed (${attempt} attempt(s))`, error);
 
       if (attempt > 5) {
-        throw new Error('failed to write points (too many attempts), abort')
+        throw new Error('failed to write points (too many attempts), abort');
       }
 
-      await sleep(500)
+      await sleep(500);
 
-      return this.writePoints(points, options, attempt)
+      return this.writePoints(points, options, attempt);
     }
   }
 
   async executeQuery(query, attempt = 0) {
     try {
-      await this.influx.query(query)
+      await this.influx.query(query);
 
       if (attempt > 0) {
-        console.debug(`[storage/${this.name}] successfully executed query ${attempt} attempt(s)`)
+        console.debug(`[storage/${this.name}] successfully executed query ${attempt} attempt(s)`);
       }
     } catch (error) {
-      attempt++
+      attempt++;
 
-      console.debug(`[storage/${this.name}] query failed (${attempt} attempt(s))`, error)
+      console.debug(`[storage/${this.name}] query failed (${attempt} attempt(s))`, error);
 
       if (attempt > 5) {
-        throw new Error('failed to execute query (too many attempts), abort')
+        throw new Error('failed to execute query (too many attempts), abort');
       }
 
-      await sleep(500)
+      await sleep(500);
 
-      return this.executeQuery(query, attempt)
+      return this.executeQuery(query, attempt);
     }
   }
 
   fetch({ from, to, timeframe = 60000, markets = [] }) {
-    const timeframeText = getHms(timeframe)
+    const timeframeText = getHms(timeframe);
 
-    let query = `SELECT * FROM "${this.options.influxDatabase}"."autogen"."trades_${timeframeText}" WHERE time >= ${from}ms AND time < ${to}ms`
+    let query = `SELECT * FROM "${this.options.influxDatabase}"."autogen"."trades_${timeframeText}" WHERE time >= ${from}ms AND time < ${to}ms`;
 
     if (markets.length) {
-      query += ` AND market =~ /${markets.join('|').replace(/\//g, '\\/')}/`
+      query += ` AND market =~ /${markets.join('|').replace(/\//g, '\\/')}/`;
     }
 
     // console.log(query)
@@ -416,10 +432,10 @@ class InfluxStorage {
       .catch((err) => {
         console.error(
           `[storage/${this.name}] failed to retrieves trades between ${from} and ${to} with timeframe ${timeframe}\n\t`,
-          err.message
-        )
-      })
+          err.message,
+        );
+      });
   }
 }
 
-module.exports = InfluxStorage
+module.exports = InfluxStorage;

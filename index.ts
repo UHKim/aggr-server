@@ -14,7 +14,7 @@ if (!config.exchanges || !config.exchanges.length) {
   config.exchanges = [];
 
   fs.readdirSync('./src/exchanges/').forEach((file) => {
-    /\.js$/.test(file) && config.exchanges.push(file.replace(/\.js$/, ''));
+    /\.(j|t)s$/.test(file) && config.exchanges.push(file.replace(/\.(j|t)s$/, ''));
   });
 }
 
