@@ -1,8 +1,8 @@
-const fs = require('fs')
-const path = require('path')
-const decamelize = require('decamelize')
+import fs from 'fs';
+import path from 'path';
+import decamelize from 'decamelize';
 
-console.log(`[init] reading config.json...`)
+console.log(`[init] reading config.json...`);
 
 /* Default configuration (its not ok to change here!, use config.json.)
  */
@@ -10,47 +10,47 @@ console.log(`[init] reading config.json...`)
 const DEFAULTS = {
   // default pairs we track
   pairs: [
-    "BITFINEX:BTCUSD",
-    "BINANCE:btcusdt",
-    "OKEX:BTC-USDT",
-    "KRAKEN:XBT/USD",
-    "COINBASE:BTC-USD",
-    "POLONIEX:USDT_BTC",
-    "HUOBI:btcusdt",
-    "BITSTAMP:btcusd",
-    "BITMEX:XBTUSD",
-    "BITFINEX:BTCF0:USTF0",
-    "OKEX:BTC-USD-SWAP",
-    "OKEX:BTC-USDT-SWAP",
-    "BINANCE_FUTURES:btcusdt",
-    "BINANCE_FUTURES:btcusd_perp",
-    "HUOBI:BTC-USD",
-    "KRAKEN:PI_XBTUSD",
-    "DERIBIT:BTC-PERPETUAL",
-    "FTX:BTC-PERP",
-    "FTX:BTC/USD",
-    "FTX:BTC/USDT",
-    "BYBIT:BTCUSD",
-    "BYBIT:BTCUSDT",
-    "BYBIT:ETHUSD",
-    "BYBIT:ETHUSDT",
-    "BITSTAMP:ethusd",
-    "BITMEX:ETHUSD",
-    "KRAKEN:PI_ETHUSD",
-    "BITFINEX:ETHUSD",
-    "COINBASE:ETH-USD",
-    "OKEX:ETH-USDT",
-    "OKEX:ETH-USDT-SWAP",
-    "OKEX:ETH-USD-SWAP",
-    "BINANCE_FUTURES:ethusdt",
-    "FTX:ETH-PERP",
-    "FTX:ETH/USD",
-    "FTX:ETH/USDT",
-    "DERIBIT:ETH-PERPETUAL",
-    "KRAKEN:ETH/USD",
-    "HUOBI:ethusdt",
-    "HUOBI:ETH-USD",
-    "BINANCE_FUTURES:ethusd_perp"
+    'BITFINEX:BTCUSD',
+    'BINANCE:btcusdt',
+    'OKEX:BTC-USDT',
+    'KRAKEN:XBT/USD',
+    'COINBASE:BTC-USD',
+    'POLONIEX:USDT_BTC',
+    'HUOBI:btcusdt',
+    'BITSTAMP:btcusd',
+    'BITMEX:XBTUSD',
+    'BITFINEX:BTCF0:USTF0',
+    'OKEX:BTC-USD-SWAP',
+    'OKEX:BTC-USDT-SWAP',
+    'BINANCE_FUTURES:btcusdt',
+    'BINANCE_FUTURES:btcusd_perp',
+    'HUOBI:BTC-USD',
+    'KRAKEN:PI_XBTUSD',
+    'DERIBIT:BTC-PERPETUAL',
+    'FTX:BTC-PERP',
+    'FTX:BTC/USD',
+    'FTX:BTC/USDT',
+    'BYBIT:BTCUSD',
+    'BYBIT:BTCUSDT',
+    'BYBIT:ETHUSD',
+    'BYBIT:ETHUSDT',
+    'BITSTAMP:ethusd',
+    'BITMEX:ETHUSD',
+    'KRAKEN:PI_ETHUSD',
+    'BITFINEX:ETHUSD',
+    'COINBASE:ETH-USD',
+    'OKEX:ETH-USDT',
+    'OKEX:ETH-USDT-SWAP',
+    'OKEX:ETH-USD-SWAP',
+    'BINANCE_FUTURES:ethusdt',
+    'FTX:ETH-PERP',
+    'FTX:ETH/USD',
+    'FTX:ETH/USDT',
+    'DERIBIT:ETH-PERPETUAL',
+    'KRAKEN:ETH/USD',
+    'HUOBI:ethusdt',
+    'HUOBI:ETH-USD',
+    'BINANCE_FUTURES:ethusd_perp',
   ],
 
   // will connect to exchanges and subscribe to pairs on startup
@@ -142,48 +142,48 @@ const DEFAULTS = {
   rateLimitMax: 30,
 
   // verbose
-  debug: false
-}
+  debug: false,
+};
 
 /* Load custom server configuration
  */
 
-let config
+let config;
 
 try {
-  const configPath = path.resolve(__dirname, '../config.json')
-  const configExamplePath = path.resolve(__dirname, '../config.json.example')
+  const configPath = path.resolve(__dirname, '../config.json');
+  const configExamplePath = path.resolve(__dirname, '../config.json.example');
   if (!fs.existsSync(configPath) && fs.existsSync(configExamplePath)) {
-    fs.copyFileSync(configExamplePath, configPath)
+    fs.copyFileSync(configExamplePath, configPath);
   }
 
-  config = require(configPath)
+  config = require(configPath);
 } catch (error) {
-  throw new Error(`Unable to parse configuration file\n\n${error.message}`)
+  throw new Error(`Unable to parse configuration file\n\n${error.message}`);
 }
 
 /* Merge default
  */
 
-config = Object.assign(DEFAULTS, config)
+config = Object.assign(DEFAULTS, config);
 
 /* Override config with ENV variables using decamelize + uppercase 
   (e.g. influxPreheatRange -> INFLUX_PREHEAT_RANGE)
  */
 
 Object.keys(config).forEach((k) => {
-  config_to_env_key = decamelize(k, '_').toUpperCase()
-  config_env_value = process.env[config_to_env_key]
+  const config_to_env_key = decamelize(k, '_').toUpperCase();
+  const config_env_value = process.env[config_to_env_key];
   if (config_env_value) {
-    config[k] = config_env_value
-    console.log(`overriding '${k}' to '${config_env_value}' via env '${config_to_env_key}'`)
+    config[k] = config_env_value;
+    console.log(`overriding '${k}' to '${config_env_value}' via env '${config_to_env_key}'`);
   }
-})
+});
 
 if (process.argv.length > 2) {
-  let exchanges = [];
+  let exchanges: string[] = [];
   process.argv.slice(2).forEach((arg) => {
-    const keyvalue = arg.split("=");
+    const keyvalue = arg.split('=');
 
     if (keyvalue.length > 1) {
       try {
@@ -207,28 +207,28 @@ if (process.argv.length > 2) {
 if (config.storage) {
   if (!Array.isArray(config.storage)) {
     if (config.storage.indexOf(',') !== -1) {
-      config.storage = config.storage.split(',').map((a) => a.trim())
+      config.storage = config.storage.split(',').map((a) => a.trim());
     } else {
-      config.storage = [config.storage.trim()]
+      config.storage = [config.storage.trim()];
     }
   }
 
   for (let storage of config.storage) {
-    const storagePath = path.resolve(__dirname, 'storage/' + storage + '.js')
+    const storagePath = path.resolve(__dirname, 'storage/' + storage + '.js');
     if (!fs.existsSync(storagePath)) {
-      throw new Error(`Unknown storage solution "${storagePath}"`)
+      throw new Error(`Unknown storage solution "${storagePath}"`);
     }
   }
 } else {
-  config.storage = null
+  config.storage = null;
 }
 
 /* Others validations
  */
 
 if (config.pair) {
-  config.pairs = Array.isArray(config.pair) ? config.pair : config.pair.split(',')
-  delete config.pair
+  config.pairs = Array.isArray(config.pair) ? config.pair : config.pair.split(',');
+  delete config.pair;
 }
 
 if (!Array.isArray(config.pairs)) {
@@ -236,53 +236,55 @@ if (!Array.isArray(config.pairs)) {
     config.pairs = config.pairs
       .split(',')
       .map((a) => a.trim())
-      .filter((a) => a.length)
+      .filter((a) => a.length);
   } else {
-    config.pairs = []
+    config.pairs = [];
   }
 }
 
 if (!config.pairs.length) {
-  config.pairs = ['bitmex:XBTUSD']
+  config.pairs = ['bitmex:XBTUSD'];
 }
 
 if (config.exchanges && typeof config.exchanges === 'string') {
   config.exchanges = config.exchanges
     .split(',')
     .map((a) => a.trim())
-    .filter((a) => a.length)
+    .filter((a) => a.length);
 }
 
 if (!config.api && config.broadcast) {
   console.warn(
-    `[warning!] websocket is enabled but api is set to ${config.api}\n\t(ws server require an http server for the initial upgrade handshake)`
-  )
+    `[warning!] websocket is enabled but api is set to ${config.api}\n\t(ws server require an http server for the initial upgrade handshake)`,
+  );
 }
 
 if (!config.storage && config.collect) {
-  console.warn(`[warning!] server will not persist any of the data it is receiving`)
+  console.warn(`[warning!] server will not persist any of the data it is receiving`);
 }
 
 if (!config.collect && !config.api) {
-  console.warn(`[warning!] server has no purpose`)
+  console.warn(`[warning!] server has no purpose`);
 }
 
 if (!config.storage && !config.collect && (config.broadcast || config.api)) {
   console.warn(
     `[warning!] ${
       config.broadcast && config.api ? 'ws and api are' : config.broadcast ? 'ws is' : 'api is'
-    } enabled but neither storage or collect is enabled (may be useless)`
-  )
+    } enabled but neither storage or collect is enabled (may be useless)`,
+  );
 }
 
 if (config.broadcast && !config.collect) {
-  console.warn(`[warning!] collect is disabled but broadcast is set to ${config.broadcast} (may be useless)`)
+  console.warn(
+    `[warning!] collect is disabled but broadcast is set to ${config.broadcast} (may be useless)`,
+  );
 }
 
 if (!config.debug) {
-  console.debug = function () {}
+  console.debug = function () {};
 } else {
-  console.debug = console.log
+  console.debug = console.log;
 }
 
-module.exports = config
+export default config;
