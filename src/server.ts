@@ -473,7 +473,7 @@ class Server extends EventEmitter {
             error: 'ignored',
           });
         }, 5000 + Math.random() * 5000);
-      } else if (this.BANNED_IPS.indexOf(ip) !== -1) {
+      } else if (this.BANNED_IPS.indexOf(ip as string) !== -1) {
         console.error(`[${ip}/BANNED] at "${req.url}" from "${req.headers['origin']}"`);
 
         setTimeout(() => {
@@ -484,6 +484,7 @@ class Server extends EventEmitter {
       } else {
         res.header('Access-Control-Allow-Origin', '*');
         res.header('Access-Control-Allow-Headers', 'X-Requested-With');
+
         next();
       }
     });
@@ -494,8 +495,8 @@ class Server extends EventEmitter {
       });
     });
 
-    app.get('/:pair/volume', (req, res) => {
-      let pair = req.params.pair;
+    app.get('/volume/:pair', (req, res) => {
+      const pair = req.params.pair;
 
       if (!/[a-zA-Z]+/.test(pair)) {
         return res.status(400).json({
@@ -517,10 +518,12 @@ class Server extends EventEmitter {
         });
     });
 
-    app.get('/historical/:from/:to/:timeframe?/:markets([^/]*)?', (req, res) => {
+    app.get('/historical/:markets([^/]*)?', async (req, res) => {
       const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
-      let { from, to, timeframe } = req.params;
-      let markets = req.params.markets || [];
+      let from: number = Number(req.query.from);
+      let to: number = Number(req.query.to);
+      let timeframe: string | number = req.query.timeframe as string;
+      let markets = req.params['markets'] || [];
 
       if (typeof markets === 'string') {
         markets = markets
@@ -556,14 +559,11 @@ class Server extends EventEmitter {
             error: 'too many bars',
           });
         }
-      } else {
-        from = parseInt(from);
-        to = parseInt(to);
       }
 
       if (from > to) {
-        let _from = parseInt(from);
-        from = parseInt(to);
+        let _from = from;
+        from = to;
         to = _from;
       }
 

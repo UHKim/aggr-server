@@ -28,6 +28,7 @@
     "ws": "^5.0.0"
   },
   "devDependencies": {
+    "@types/express": "^4.17.12",
     "@types/node": "^15.12.4",
     "@types/pako": "^1.0.1",
     "@types/ws": "^7.4.4",
