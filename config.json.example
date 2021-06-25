@@ -56,5 +56,6 @@
   "origin": ".*",
   "filesLocation": "./data",
   "influxHost": "localhost",
-  "influxPort": 8086
+  "influxPort": 8086,
+  "influxUrl": "localhost:8086",
 }
